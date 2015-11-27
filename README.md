@@ -31,7 +31,7 @@ Options:
                         uri-parameter- . Default: sqlite://filecatalog.sqlite
   -t DBMETADATA, --dbmetadata=DBMETADATA
                         the directory where DAL stores the structure of the
-                        databas. Default: ./dbmetadata
+                        database. Default: ./dbmetadata
   -v, --version         print the program version number
 
 </pre>
