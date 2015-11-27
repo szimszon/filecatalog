@@ -18,15 +18,20 @@ class config():
                   action="store_true", dest="catalog", default=False,
                   help="catalog a disk. Default: False")
         parser.add_option("-a", "--merge",
-                  action="store", dest="merge", default='',
+                  action="store", dest="merge", default=None,
                   help="merge subdirectory content to the catalog. It have to relative path to"+\
-                        " the root of the catalog! Default: ''")
+                        " the root of the catalog! Default: None")
         parser.add_option("-l", "--list",
                   action="store_true", dest="list", default=False,
                   help="list or search catalog. Default: True")
         parser.add_option("-m", "--namesearch",
                   action="store", dest="namesearch", default="%",
                   help="search the catalog for this filename. You can use '%' as a wildcard.")
+        parser.add_option("-f", "--fieldsearch",
+                  action="store", dest="fieldsearch", default=None,
+                  help="search the catalog for sets of file properties. You can list as many field"+\
+                  " as you wish. Separate it with ';'. Example: -f 'description=text file;uid=0'"+\
+                  " Default: None")        
         parser.add_option("-d", "--dir",
                   action="store", dest="directory", default="./",
                   help="parse the directory as a root of a catalog")
@@ -117,16 +122,16 @@ class catalog():
         """
             This is a list of file extension list and a process name to catalog the compressed file
         """
-        return list(
-            [[".tgz",".tar",".tar.gz","tar.bz2"],self.walktar]
-                    )
+        return [
+                [[".tgz",".tar",".tar.gz","tar.bz2"],self.walktar]
+                ]
     
     def do_catalog(self):
         """
             Proceed with the catalog
         """
         db=self.db
-        if self.cfg.get_option('merge')=='':
+        if not self.cfg.get_option('merge'):
             print "Create or rescreate catalog: "+self.cfg.get_option('storagename')
             db(db.files.storages_id==self.storages_id).delete()
             parent_id=None
@@ -382,19 +387,13 @@ class listfiles():
         """
         self.cfg=cfg
         self.db=self.cfg.get_db()
-        self.search=self.cfg.get_option('namesearch')
-        self.storage=(self.db.storages.storagename==str(self.cfg.get_option("storagename")))&\
-                   (self.db.storages.id==self.db.files.storages_id)
-        if self.search!='%':
-            q=None
-            for r in self.db(self.storage&self.db.files.filename.like('%'+self.search+'%')).select(self.db.files.ALL):
-                if r.parent_id:
-                    if not q:
-                        q=(self.get_related_rows(r)|self.db.files.filename.like('%'+self.search+'%'))
-                    else:
-                        q=(q|self.get_related_rows(r))
-            self.storage=(self.storage&q)
-            
+        self.namesearch=self.cfg.get_option('namesearch')
+        self.fieldsearch=self.cfg.get_option('fieldsearch')
+        self.storages_id=self.db(self.db.storages.storagename==str(self.cfg.get_option("storagename"))).\
+            select(self.db.storages.id).first().id
+        q=None
+        self.storage=self.get_search_query(q)
+    
     def tree(self,q=None,parent_id=None,level=0):
         """
             display the resulted directory and files tree corresponding with to the 'q' query
@@ -436,25 +435,60 @@ class listfiles():
         
         return prefix+' +- '+fname+''+size+' '+uid+' '+gid+' '+mode+' [ '+ctime+' ] [ '+mtime+' ] -- '+description
 
-    def get_related_rows(self,r,q=None):
+    def get_related_rows(self,r,ids=[]):
         """
-            return a query that results all related item for the items with a specified pattern you searched 
+            return ids of related item for the items with a specified pattern you searched 
         """
-        if not q:
-            q=(self.db.files.id==r.parent_id)
-        else:
-            q=q|(self.db.files.id==r.parent_id)
         pif=self.db(self.db.files.id==r.parent_id).select(self.db.files.parent_id).first()
         if pif.parent_id:
-            parent_query=self.get_related_rows(pif, q)
-            q=(q|parent_query)
-        return q        
+            ids=self.get_related_rows(pif, ids)
+            if not pif.parent_id in ids:
+                ids.append(str(pif.parent_id))
+        return ids      
 
+    def get_search_query(self,q=None):
+        """
+            Return the constructed query for namesearch and/or fieldsearch
+        """
+        db=self.db
+        namesearch=self.namesearch
+        fieldsearch=self.fieldsearch
+        if namesearch!="%":
+            if not q:
+                q=(db.files.filename.like(namesearch))
+            else:
+                q=q&(db.files.filename.like(namesearch))
+        if fieldsearch:
+            for fsearch in fieldsearch.split(';'):
+                fname,value=fsearch.split('=')
+                if not q:
+                    q=(db.files[fname]==value)
+                else:
+                    q=q&(db.files[fname]==value)
+        or_q=None
+        if namesearch!='%' or fieldsearch:
+            related_ids=[]
+            for r in db(q).select(self.db.files.ALL):
+                if r.parent_id:
+                    related_ids.extend(self.get_related_rows(r))
+                    related_ids.append(r.parent_id)
+            if not or_q:
+                or_q=(db.files.id.belongs(related_ids))
+            else:
+                or_q=or_q|(db.files.id.belongs(related_ids))
+        if not q:
+            q=(db.files.storages_id==self.storages_id)
+        else:
+            q=((db.files.storages_id==self.storages_id)&q)
+        if or_q:
+            q=q|or_q
+        return q
+        
 def main():
     
     cfg=config()
     if cfg.get_option("version"):
-        print "Version: 2015112702"
+        print "Version: 2015112703"
         sys.exit(0)
     if cfg.get_option('catalog'):
         ctl=catalog(cfg)

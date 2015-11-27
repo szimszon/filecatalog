@@ -9,17 +9,23 @@ It is slow and has only cli mode :-o
 The database abstraction layer is included from  Massimo Di Pierro's Web2py (http://www.web2py.com). Thank you!
 <pre>
 Usage: filecatalog.py [options]
- 
+
 Options:
   -h, --help            show this help message and exit
   -c, --catalog         catalog a disk. Default: False
   -a MERGE, --merge=MERGE
                         merge subdirectory content to the catalog. It have to
-                        relative path to the root of the catalog! Default: ''
+                        relative path to the root of the catalog! Default:
+                        None
   -l, --list            list or search catalog. Default: True
   -m NAMESEARCH, --namesearch=NAMESEARCH
                         search the catalog for this filename. You can use '%'
                         as a wildcard.
+  -f FIELDSEARCH, --fieldsearch=FIELDSEARCH
+                        search the catalog for sets of file properties. You
+                        can list as many field as you wish. Separate it with
+                        ';'. Example: -f 'description=text file;uid=0'
+                        Default: None
   -d DIRECTORY, --dir=DIRECTORY
                         parse the directory as a root of a catalog
   -n STORAGENAME, --storagename=STORAGENAME
