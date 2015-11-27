@@ -1,8 +1,8 @@
 # filecatalog
 
-It's a file catalog written in python
+It's a filesystem catalog written in python
 
-It is slow has only has cli mode :-o
+It is slow and has only cli mode :-o
 
 * it parses tar(.gz,.bz2) archives too...
 
