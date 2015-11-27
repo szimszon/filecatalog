@@ -40,7 +40,7 @@ class config():
                     "#Connection-strings--the-uri-parameter- . Default: sqlite://filecatalog.sqlite")
         parser.add_option("-t", "--dbmetadata",
                   action="store", dest="dbmetadata", default="./dbmetadata",
-                  help="the directory where DAL stores the structure of the databas. Default: ./dbmetadata")
+                  help="the directory where DAL stores the structure of the database. Default: ./dbmetadata")
         parser.add_option("-v", "--version",
                   action="store_true", dest="version", default=False,
                   help="print the program version number")
@@ -454,7 +454,7 @@ def main():
     
     cfg=config()
     if cfg.get_option("version"):
-        print "Version: 2015112701"
+        print "Version: 2015112702"
         sys.exit(0)
     if cfg.get_option('catalog'):
         ctl=catalog(cfg)
