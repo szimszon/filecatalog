@@ -439,7 +439,8 @@ class listfiles():
         """
             return ids of related item for the items with a specified pattern you searched 
         """
-        pif=self.db(self.db.files.id==r.parent_id).select(self.db.files.parent_id).first()
+        pif=self.db((self.db.files.storages_id==self.storages_id)&\
+                    (self.db.files.id==r.parent_id)).select(self.db.files.parent_id).first()
         if pif.parent_id:
             ids=self.get_related_rows(pif, ids)
             if not pif.parent_id in ids:
@@ -453,6 +454,8 @@ class listfiles():
         db=self.db
         namesearch=self.namesearch
         fieldsearch=self.fieldsearch
+        if not q:
+            q=(db.files.storages_id==self.storages_id)
         if namesearch!="%":
             if not q:
                 q=(db.files.filename.like(namesearch))
@@ -476,10 +479,6 @@ class listfiles():
                 or_q=(db.files.id.belongs(related_ids))
             else:
                 or_q=or_q|(db.files.id.belongs(related_ids))
-        if not q:
-            q=(db.files.storages_id==self.storages_id)
-        else:
-            q=((db.files.storages_id==self.storages_id)&q)
         if or_q:
             q=q|or_q
         return q
@@ -488,7 +487,7 @@ def main():
     
     cfg=config()
     if cfg.get_option("version"):
-        print "Version: 2015112703"
+        print "Version: 2015112704"
         sys.exit(0)
     if cfg.get_option('catalog'):
         ctl=catalog(cfg)
