@@ -24,7 +24,8 @@ Options:
   -f FIELDSEARCH, --fieldsearch=FIELDSEARCH
                         search the catalog for sets of file properties. You
                         can list as many field as you wish. Separate it with
-                        ';'. Example: -f 'description=text file;uid=0'
+                        ';'. Example: -f 'description=text file;uid=0' With
+                        the description field you can use % as a wildcard.
                         Default: None
   -d DIRECTORY, --dir=DIRECTORY
                         parse the directory as a root of a catalog
@@ -39,5 +40,4 @@ Options:
                         the directory where DAL stores the structure of the
                         database. Default: ./dbmetadata
   -v, --version         print the program version number
-
 </pre>

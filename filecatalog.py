@@ -31,6 +31,7 @@ class config():
                   action="store", dest="fieldsearch", default=None,
                   help="search the catalog for sets of file properties. You can list as many field"+\
                   " as you wish. Separate it with ';'. Example: -f 'description=text file;uid=0'"+\
+                  " With the description field you can use % as a wildcard."+\
                   " Default: None")        
         parser.add_option("-d", "--dir",
                   action="store", dest="directory", default="./",
@@ -95,7 +96,7 @@ class config():
                     Field('nlink','integer'),
                     Field('uid','integer'),
                     Field('gid','integer'),
-                    Field('size','integer'),
+                    Field('size','double'),
                     Field('ctime','datetime'),
                     Field('mtime','datetime'),
                     Field('atime','datetime'),
@@ -181,10 +182,7 @@ class catalog():
             if os.path.isdir(pathname):
                 # It's a directory, recurse into it
                 new_parent_id=self.storefile(self.fileprop(pathname),parent_id)
-                try:
-                    self.walktree(pathname, new_parent_id)
-                except:
-                    pass
+                self.walktree(pathname, new_parent_id)
             elif os.path.isfile(pathname):
                 fileproperties=self.fileprop(pathname)
                 file_parent_id=self.storefile(fileproperties,parent_id)
@@ -325,10 +323,19 @@ class catalog():
         if not 'parent_id' in prop and parent_id:
             prop['parent_id']=parent_id
         self.dp.display_number()
-        record_id=self.db.files.update_or_insert(
-            storages_id=self.storages_id,
-            **prop
+        try:
+            record_id=self.db.files.update_or_insert(
+                                                     storages_id=self.storages_id,
+                                                     **prop
                                        )
+        except Exception,e:
+            print "Error:"
+            print e
+            print "File properties:"
+            print prop
+            print "Last SQL:"
+            print self.db._lastsql
+            raise Exception('Internal error')
         return record_id
         
     def commit(self):
@@ -464,10 +471,14 @@ class listfiles():
         if fieldsearch:
             for fsearch in fieldsearch.split(';'):
                 fname,value=fsearch.split('=')
-                if not q:
-                    q=(db.files[fname]==value)
+                if 'description' in fname:
+                    fquery=(db.files[fname].like(value))
                 else:
-                    q=q&(db.files[fname]==value)
+                    fquery=(db.files[fname]==value)
+                if not q:
+                    q=fquery
+                else:
+                    q=q&fquery
         or_q=None
         if namesearch!='%' or fieldsearch:
             related_ids=[]
@@ -487,14 +498,18 @@ def main():
     
     cfg=config()
     if cfg.get_option("version"):
-        print "Version: 2015112704"
+        print "Version: 2015112901"
         sys.exit(0)
-    if cfg.get_option('catalog'):
-        ctl=catalog(cfg)
-        ctl.do_catalog()
-    else:
-        lst=listfiles(cfg)
-        lst.tree()
+    try:
+        if cfg.get_option('catalog'):
+            ctl=catalog(cfg)
+            ctl.do_catalog()
+        else:
+            lst=listfiles(cfg)
+            lst.tree()
+    except KeyboardInterrupt,unused:
+        print
+        print "User abort."
 
 if __name__ == "__main__":
     main()
